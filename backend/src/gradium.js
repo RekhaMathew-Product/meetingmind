@@ -35,7 +35,7 @@ export async function generateSpeech(text) {
     body: JSON.stringify({
       text,
       voice_id: VOICE_ID,
-      output_format: 'mp3',
+      output_format: 'wav',
       only_audio: true,
     }),
   });
@@ -52,7 +52,7 @@ export async function generateSpeech(text) {
     throw new Error(`Gradium returned suspiciously small audio (${audioBuffer.length} bytes) — likely an error response`);
   }
 
-  const filename = `alert-${uuidv4()}.mp3`;
+  const filename = `alert-${uuidv4()}.wav`;
   const filepath = path.join(AUDIO_DIR, filename);
   fs.writeFileSync(filepath, audioBuffer);
 

@@ -103,6 +103,40 @@ meetingRouter.post('/end', async (req, res) => {
 });
 
 /**
+ * POST /api/meeting/test-speak
+ * Fire a test voice alert immediately — diagnoses the TTS + Recall speak pipeline.
+ */
+meetingRouter.post('/test-speak', async (req, res) => {
+  if (!session.botId) {
+    return res.status(400).json({ error: 'No active bot — start a meeting first' });
+  }
+
+  const { generateSpeech } = await import('./gradium.js');
+  const { botSpeak } = await import('./recallai.js');
+
+  const text = req.body?.text || 'MeetingMind AI voice test — if you can hear this, audio injection is working.';
+  const log = [];
+
+  try {
+    log.push(`Bot ID: ${session.botId}`);
+
+    log.push('Step 1: Calling Gradium TTS...');
+    const audioUrl = await generateSpeech(text);
+    log.push(`Step 1 OK: audio URL = ${audioUrl}`);
+
+    log.push('Step 2: Calling Recall botSpeak...');
+    await botSpeak(session.botId, audioUrl);
+    log.push('Step 2 OK: Recall accepted the audio');
+
+    res.json({ success: true, audioUrl, log });
+  } catch (err) {
+    log.push(`FAILED: ${err.message}`);
+    console.error('[TestSpeak] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message, log });
+  }
+});
+
+/**
  * GET /api/meeting/status
  */
 meetingRouter.get('/status', (req, res) => {
