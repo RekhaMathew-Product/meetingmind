@@ -55,7 +55,7 @@ export async function joinMeeting(meetingUrl, webhookUrl) {
  */
 export async function botSpeak(botId, audioUrl) {
   console.log(`[Recall] botSpeak → bot=${botId} url=${audioUrl}`);
-  const res = await fetch(`${BASE}/bot/${botId}/speak/`, {
+  const res = await fetch(`${BASE}/bot/${botId}/speak`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({ audio_url: audioUrl }),
