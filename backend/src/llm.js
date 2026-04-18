@@ -8,6 +8,12 @@ import Anthropic from '@anthropic-ai/sdk';
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5-20251001'; // Fast + cheap for real-time polling
 
+function parseJSON(text) {
+  // Strip markdown code fences Claude sometimes adds despite instructions
+  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  return JSON.parse(cleaned);
+}
+
 /**
  * Check whether the transcript is on-topic for the current agenda item.
  * Called every 30s by the polling loop.
@@ -35,7 +41,7 @@ status must be exactly "ON_TOPIC" or "DIGRESSING".`,
   });
 
   const content = message.content[0]?.text?.trim();
-  return JSON.parse(content);
+  return parseJSON(content);
 }
 
 /**
@@ -73,5 +79,5 @@ Reply with ONLY valid JSON — no markdown:
   });
 
   const content = message.content[0]?.text?.trim();
-  return JSON.parse(content);
+  return parseJSON(content);
 }
