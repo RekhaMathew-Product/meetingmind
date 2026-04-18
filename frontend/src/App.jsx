@@ -46,6 +46,15 @@ export default function App() {
           break;
         case 'voice_alert':
           setAlerts(prev => [data, ...prev].slice(0, 10));
+          // Speak alert through the browser — tab audio is shared in Google Meet
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // stop any previous utterance
+            const utterance = new SpeechSynthesisUtterance(data.text);
+            utterance.rate = 0.95;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            window.speechSynthesis.speak(utterance);
+          }
           break;
         case 'item_advanced':
           setCurrentItemIndex(data.index);
