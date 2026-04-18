@@ -65,7 +65,6 @@ meetingRouter.post('/next-item', (req, res) => {
     session.agenda.length - 1
   );
   session.itemStartedAt = new Date();
-  session.consecutiveDigressions = 0;
   session.alertCooldownUntil = null;
 
   const item = session.agenda[session.currentItemIndex];

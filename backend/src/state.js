@@ -12,7 +12,6 @@ export const session = {
   status: 'idle',      // idle | live | ended
   pollIntervalId: null,
   alertCooldownUntil: null,
-  consecutiveDigressions: 0,
   summary: null,
 };
 
@@ -28,7 +27,6 @@ export function resetSession() {
     status: 'idle',
     pollIntervalId: null,
     alertCooldownUntil: null,
-    consecutiveDigressions: 0,
     summary: null,
   });
 }

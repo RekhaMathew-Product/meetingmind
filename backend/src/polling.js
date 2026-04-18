@@ -5,7 +5,6 @@ import { botSpeak } from './recallai.js';
 import { broadcastEvent } from './webhook.js';
 
 const POLL_INTERVAL_MS = 30_000;      // 30 seconds
-const DIGRESSION_THRESHOLD_S = 60;    // 60s of digression before alerting
 const COOLDOWN_MS = 3 * 60 * 1000;    // 3-minute cooldown between alerts
 const OVERTIME_BUFFER_S = 120;        // 2 minutes over budget triggers timekeeper
 
@@ -30,18 +29,11 @@ async function runPollCycle() {
 
     broadcastEvent('agenda_check', { ...result, agendaItem: item.item });
 
-    if (result.status === 'DIGRESSING') {
-      session.consecutiveDigressions++;
-    } else {
-      session.consecutiveDigressions = 0;
-    }
-
     const cooldownPassed = !session.alertCooldownUntil || Date.now() > session.alertCooldownUntil;
 
-    if (session.consecutiveDigressions >= 2 && cooldownPassed) {
-      const text = `Quick heads-up — we've drifted from ${item.item} for about a minute. Let's try to bring it back on track.`;
+    if (result.status === 'DIGRESSING' && cooldownPassed) {
+      const text = `Quick heads-up — we've drifted from ${item.item}. Let's try to bring it back on track.`;
       await fireVoiceAlert(text, 'digression');
-      session.consecutiveDigressions = 0;
     }
   } catch (err) {
     console.error('[Poll] Agenda check error:', err.message);
