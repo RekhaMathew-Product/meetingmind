@@ -21,6 +21,8 @@ export async function joinMeeting(meetingUrl, webhookUrl) {
     body: JSON.stringify({
       meeting_url: meetingUrl,
       bot_name: 'MeetingMind AI',
+      automatic_leave: { waiting_room_timeout: 1200 }, // leave if not admitted in 20 min
+      google_meet: { auto_admit: true },               // skip the waiting room
       transcription_options: { provider: 'assembly_ai' },
       real_time_transcription: {
         destination_url: webhookUrl,

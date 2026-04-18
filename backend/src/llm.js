@@ -67,7 +67,7 @@ Reply with ONLY valid JSON — no markdown:
   "actionItems": [{"item": "task description", "owner": "speaker name or TBD"}],
   "efficiencyScore": 74,
   "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"],
-  "voiceSummary": "A 2-3 sentence spoken summary of meeting outcomes."
+  "voiceSummary": "Meeting complete. Efficiency score: [score]. [N] decisions made, [N] action items assigned."
 }`,
     }],
   });

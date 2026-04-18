@@ -3,6 +3,7 @@ import { session, resetSession } from './state.js';
 import { joinMeeting, leaveBot } from './recallai.js';
 import { startPolling, generateMeetingSummary } from './polling.js';
 import { broadcastEvent } from './webhook.js';
+import { clearContextCache } from './contextDetector.js';
 
 export const meetingRouter = Router();
 
@@ -24,6 +25,10 @@ meetingRouter.post('/start', async (req, res) => {
   const webhookUrl = `${process.env.PUBLIC_BASE_URL}/webhook/recall`;
 
   try {
+    // Full reset so no state bleeds in from a previous meeting
+    resetSession();
+    clearContextCache();
+
     const bot = await joinMeeting(meetingUrl, webhookUrl);
 
     Object.assign(session, {
@@ -85,9 +90,10 @@ meetingRouter.post('/end', async (req, res) => {
 
   try {
     const summary = await generateMeetingSummary();
+    const botId = session.botId;
 
-    if (session.botId) {
-      await leaveBot(session.botId);
+    if (botId) {
+      await leaveBot(botId);
     }
 
     res.json({ summary });

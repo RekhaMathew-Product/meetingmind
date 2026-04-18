@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 const BASE = process.env.GRADIUM_API_BASE || 'https://api.gradium.ai/v1';
 const KEY = process.env.GRADIUM_API_KEY;
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://localhost:3001';
+// Set GRADIUM_VOICE_ID in .env once you confirm the voice ID from https://gradium.ai/docs
+const VOICE_ID = process.env.GRADIUM_VOICE_ID || 'default';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUDIO_DIR = path.join(__dirname, '../../audio');
@@ -27,7 +29,7 @@ export async function generateSpeech(text) {
     },
     body: JSON.stringify({
       input: text,
-      voice: 'nova',   // Adjust to a Gradium voice ID once you confirm their API
+      voice: VOICE_ID,
       model: 'gradium-tts-1',
     }),
   });
