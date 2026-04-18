@@ -1,35 +1,33 @@
 /**
  * TinyFish client — web AI platform (Fetch + Search)
- * Docs: https://www.tinyfish.ai/
+ * Docs: https://docs.tinyfish.ai/
  *
- * Used in MeetingMind to pull live context mid-meeting:
- *   - If someone mentions a client URL → Fetch it for clean summary
- *   - If a topic/company is mentioned → Search for quick context
+ * Fetch API: https://api.fetch.tinyfish.ai  (POST, body: { urls: [] })
+ * Search API: https://api.search.tinyfish.ai (GET, query params: ?query=)
  */
 import fetch from 'node-fetch';
 
-const BASE = process.env.TINYFISH_API_BASE || 'https://api.tinyfish.ai/v1';
 const KEY = process.env.TINYFISH_API_KEY;
 
 function headers() {
   return {
-    'Authorization': `Bearer ${KEY}`,
+    'X-API-Key': KEY,
     'Content-Type': 'application/json',
   };
 }
 
 /**
  * Fetch a URL and return cleaned, structured content.
- * Uses TinyFish Fetch — pulls any URL to clean readable content.
+ * Uses TinyFish Fetch API — renders page and returns markdown.
  *
- * @param {string} url - The URL to fetch
- * @returns {{ title: string, content: string, url: string }}
+ * @param {string} url
+ * @returns {{ title: string, snippet: string, url: string }}
  */
 export async function fetchUrl(url) {
-  const res = await fetch(`${BASE}/fetch`, {
+  const res = await fetch('https://api.fetch.tinyfish.ai', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ urls: [url], format: 'markdown' }),
   });
 
   if (!res.ok) {
@@ -38,27 +36,29 @@ export async function fetchUrl(url) {
   }
 
   const data = await res.json();
+  const result = data.results?.[0];
+  if (!result) throw new Error(`TinyFish Fetch: no result for ${url}`);
+
   return {
-    url,
-    title: data.title || url,
-    content: data.content || data.text || '',
-    snippet: (data.content || data.text || '').slice(0, 400),
+    url: result.final_url || url,
+    title: result.title || url,
+    snippet: (result.text || '').slice(0, 400),
   };
 }
 
 /**
  * Search the web for a topic mentioned in the meeting.
- * Uses TinyFish Search — fast, structured web search.
+ * Uses TinyFish Search API — returns ranked results.
  *
- * @param {string} query - Search query (e.g. company name, project)
- * @param {number} limit - Max results to return
+ * @param {string} query
+ * @param {number} limit
  * @returns {Array<{ title: string, url: string, snippet: string }>}
  */
 export async function searchTopic(query, limit = 3) {
-  const res = await fetch(`${BASE}/search`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ query, limit }),
+  const params = new URLSearchParams({ query, language: 'en' });
+  const res = await fetch(`https://api.search.tinyfish.ai?${params}`, {
+    method: 'GET',
+    headers: { 'X-API-Key': KEY },
   });
 
   if (!res.ok) {
@@ -67,11 +67,9 @@ export async function searchTopic(query, limit = 3) {
   }
 
   const data = await res.json();
-  // Normalize result shape — check TinyFish docs for actual response field names
-  const results = data.results || data.items || [];
-  return results.slice(0, limit).map(r => ({
-    title: r.title || r.name || '',
-    url: r.url || r.link || '',
-    snippet: r.snippet || r.description || r.content?.slice(0, 300) || '',
+  return (data.results || []).slice(0, limit).map(r => ({
+    title: r.title || '',
+    url: r.url || '',
+    snippet: r.snippet || '',
   }));
 }
