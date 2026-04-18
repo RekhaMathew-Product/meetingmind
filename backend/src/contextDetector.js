@@ -1,104 +1,109 @@
 /**
- * Context detector — scans the live transcript for URLs and notable topics,
- * then uses TinyFish Fetch/Search to pull live context mid-meeting.
+ * Context detector — triggers TinyFish Search when a speaker expresses
+ * uncertainty ("I don't know", "I'm not sure", etc.).
  *
- * Detected triggers:
- *   - URLs mentioned in speech (https://... or "dot com" patterns)
- *   - Company/client/project names (heuristic: capitalized noun phrases)
- *
- * Results are broadcast to the dashboard as `context_card` SSE events.
+ * Flow:
+ *   1. Detect uncertainty phrase in transcript chunk
+ *   2. Grab last ~100 words of transcript as context
+ *   3. Ask Claude: "what topic should I search for?"
+ *   4. TinyFish Search that topic
+ *   5. Broadcast context_card to dashboard
  */
-import { fetchUrl, searchTopic } from './tinyfish.js';
+import Anthropic from '@anthropic-ai/sdk';
+import { searchTopic } from './tinyfish.js';
 import { broadcastEvent } from './webhook.js';
+import { lastNWords } from './state.js';
 
-// Prevent re-fetching the same thing repeatedly
-const fetchedCache = new Set();
-const CACHE_TTL_MS = 10 * 60 * 1000; // clear every 10 minutes per session
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Regex to find explicit URLs in transcript text
-const URL_REGEX = /https?:\/\/[^\s,)]+/gi;
+// Cooldown: don't trigger again for 60s after a search fires
+let lastTriggeredAt = 0;
+const TRIGGER_COOLDOWN_MS = 60_000;
 
-// Heuristic: detect multi-word capitalized proper nouns (likely company/client names)
-// e.g. "Acme Corp", "Project Phoenix", "Google Cloud"
-const PROPER_NOUN_REGEX = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g;
+// Phrases that indicate the speaker doesn't know something
+const UNCERTAINTY_PATTERNS = [
+  /i('m| am) not sure/i,
+  /i don'?t know/i,
+  /i('m| am) unsure/i,
+  /i('m| am) not certain/i,
+  /i don'?t remember/i,
+  /i('m| am) not (100|fully|totally|completely) sure/i,
+  /no idea/i,
+  /i forget/i,
+  /i can'?t remember/i,
+  /not (quite |totally |fully )?sure (about|what|how|why|when|where|who)/i,
+];
 
-// Common words to ignore so we don't search noise
-const IGNORE_LIST = new Set([
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-  'January', 'February', 'March', 'April', 'June', 'July', 'August',
-  'September', 'October', 'November', 'December',
-  'Meeting Mind', 'Google Meet', 'Action Items', 'Next Steps',
-]);
-
-/**
- * Process a new transcript entry. Call this from the webhook handler
- * each time a new chunk arrives.
- *
- * @param {string} speaker
- * @param {string} text
- */
-export async function processTranscriptForContext(speaker, text) {
-  const urlMatches = text.match(URL_REGEX) || [];
-  const nounMatches = [...text.matchAll(PROPER_NOUN_REGEX)].map(m => m[1]);
-
-  const toProcess = [];
-
-  for (const url of urlMatches) {
-    const key = `url:${url}`;
-    if (!fetchedCache.has(key)) {
-      fetchedCache.add(key);
-      toProcess.push({ type: 'url', value: url });
-    }
-  }
-
-  for (const noun of nounMatches) {
-    if (IGNORE_LIST.has(noun)) continue;
-    const key = `noun:${noun.toLowerCase()}`;
-    if (!fetchedCache.has(key)) {
-      fetchedCache.add(key);
-      toProcess.push({ type: 'topic', value: noun });
-    }
-  }
-
-  // Fire all fetches concurrently (don't await in the webhook hot path)
-  for (const item of toProcess) {
-    runContextFetch(item, speaker).catch(err =>
-      console.warn(`[Context] Fetch failed for "${item.value}":`, err.message)
-    );
-  }
+function detectsUncertainty(text) {
+  return UNCERTAINTY_PATTERNS.some(p => p.test(text));
 }
 
-async function runContextFetch({ type, value }, mentionedBy) {
-  console.log(`[Context] ${type === 'url' ? 'Fetching URL' : 'Searching topic'}: ${value}`);
+/**
+ * Called from webhook.js on every transcript chunk.
+ */
+export async function processTranscriptForContext(speaker, text) {
+  if (!detectsUncertainty(text)) return;
+
+  const now = Date.now();
+  if (now - lastTriggeredAt < TRIGGER_COOLDOWN_MS) return;
+  lastTriggeredAt = now;
+
+  console.log(`[Context] Uncertainty detected from ${speaker}: "${text}"`);
+
+  // Don't await — fire and forget so webhook responds immediately
+  runContextSearch(speaker).catch(err =>
+    console.warn('[Context] Search failed:', err.message)
+  );
+}
+
+async function runContextSearch(mentionedBy) {
+  // Get recent transcript for context
+  const recentContext = lastNWords(100);
+
+  // Ask Claude what to search for
+  let searchQuery;
+  try {
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 60,
+      messages: [{
+        role: 'user',
+        content: `A meeting participant just said they don't know or aren't sure about something.
+
+Recent conversation:
+${recentContext}
+
+What is the ONE specific topic, term, or question they are uncertain about?
+Reply with ONLY a short search query (5 words max). No explanation.`,
+      }],
+    });
+    searchQuery = message.content[0]?.text?.trim();
+  } catch (err) {
+    console.warn('[Context] Claude query extraction failed:', err.message);
+    return;
+  }
+
+  if (!searchQuery) return;
+  console.log(`[Context] Searching TinyFish for: "${searchQuery}"`);
 
   try {
-    if (type === 'url') {
-      const result = await fetchUrl(value);
-      broadcastEvent('context_card', {
-        trigger: 'url',
-        query: value,
-        mentionedBy,
-        title: result.title,
-        snippet: result.snippet,
-        url: result.url,
-        ts: Date.now(),
-      });
-    } else {
-      const results = await searchTopic(value, 2);
-      if (results.length === 0) return;
-      broadcastEvent('context_card', {
-        trigger: 'topic',
-        query: value,
-        mentionedBy,
-        results,
-        ts: Date.now(),
-      });
-    }
+    const results = await searchTopic(searchQuery, 3);
+    if (results.length === 0) return;
+
+    broadcastEvent('context_card', {
+      trigger: 'uncertainty',
+      query: searchQuery,
+      mentionedBy,
+      results,
+      ts: Date.now(),
+    });
+
+    console.log(`[Context] Broadcast ${results.length} results for "${searchQuery}"`);
   } catch (err) {
-    console.warn(`[Context] Failed for "${value}":`, err.message);
+    console.warn(`[Context] TinyFish search failed for "${searchQuery}":`, err.message);
   }
 }
 
 export function clearContextCache() {
-  fetchedCache.clear();
+  lastTriggeredAt = 0;
 }

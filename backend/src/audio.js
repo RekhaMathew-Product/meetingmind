@@ -17,6 +17,7 @@ audioRouter.get('/:filename', (req, res) => {
     return res.status(404).json({ error: 'Audio file not found' });
   }
 
-  res.setHeader('Content-Type', 'audio/mpeg');
+  const contentType = filepath.endsWith('.wav') ? 'audio/wav' : 'audio/mpeg';
+  res.setHeader('Content-Type', contentType);
   createReadStream(filepath).pipe(res);
 });

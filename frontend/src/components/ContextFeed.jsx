@@ -1,6 +1,6 @@
 /**
  * ContextFeed — displays live context cards fetched by TinyFish
- * when a URL or company/client name is mentioned in the meeting.
+ * when a speaker says "I don't know" / "I'm not sure".
  */
 export default function ContextFeed({ cards }) {
   if (cards.length === 0) return null;
@@ -12,27 +12,14 @@ export default function ContextFeed({ cards }) {
         {cards.map((card, i) => (
           <div key={i} className="context-item">
             <div className="context-item-header">
-              <span className="context-trigger-badge">
-                {card.trigger === 'url' ? 'URL' : 'Topic'}
-              </span>
-              <span className="context-query">{card.query}</span>
+              <span className="context-trigger-badge">Searching</span>
+              <span className="context-query">"{card.query}"</span>
               {card.mentionedBy && (
-                <span className="context-mentioned-by">mentioned by {card.mentionedBy}</span>
+                <span className="context-mentioned-by">{card.mentionedBy} wasn't sure</span>
               )}
             </div>
 
-            {/* URL fetch result */}
-            {card.trigger === 'url' && (
-              <div className="context-result">
-                <a href={card.url} target="_blank" rel="noreferrer" className="context-title">
-                  {card.title}
-                </a>
-                <p className="context-snippet">{card.snippet}</p>
-              </div>
-            )}
-
-            {/* Topic search results */}
-            {card.trigger === 'topic' && card.results?.map((r, j) => (
+            {card.results?.map((r, j) => (
               <div key={j} className="context-result">
                 <a href={r.url} target="_blank" rel="noreferrer" className="context-title">
                   {r.title}

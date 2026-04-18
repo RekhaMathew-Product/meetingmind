@@ -4,33 +4,39 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
-const BASE = process.env.GRADIUM_API_BASE || 'https://api.gradium.ai/v1';
+// Correct base: https://api.gradium.ai/api  (not /v1)
+const BASE = 'https://api.gradium.ai/api';
 const KEY = process.env.GRADIUM_API_KEY;
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://localhost:3001';
-// Set GRADIUM_VOICE_ID in .env once you confirm the voice ID from https://gradium.ai/docs
 const VOICE_ID = process.env.GRADIUM_VOICE_ID || 'default';
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://localhost:3001';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUDIO_DIR = path.join(__dirname, '../../audio');
 
-// Ensure audio output directory exists
 fs.mkdirSync(AUDIO_DIR, { recursive: true });
 
 /**
- * Generate speech audio from text via Gradium TTS.
- * Saves the file locally and returns the public URL for Recall to fetch.
+ * Generate speech via Gradium TTS POST endpoint.
+ * Docs: https://docs.gradium.ai/api-reference/introduction
+ *
+ * POST /api/post/speech/tts
+ * Auth: x-api-key header
+ * Returns raw audio bytes when only_audio=true
  */
 export async function generateSpeech(text) {
-  const res = await fetch(`${BASE}/audio/speech`, {
+  console.log(`[Gradium] Generating speech for: "${text.slice(0, 60)}..."`);
+
+  const res = await fetch(`${BASE}/post/speech/tts`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${KEY}`,
+      'x-api-key': KEY,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      input: text,
-      voice: VOICE_ID,
-      model: 'gradium-tts-1',
+      text,
+      voice_id: VOICE_ID,
+      output_format: 'wav',
+      only_audio: true,
     }),
   });
 
@@ -40,7 +46,7 @@ export async function generateSpeech(text) {
   }
 
   const audioBuffer = Buffer.from(await res.arrayBuffer());
-  const filename = `alert-${uuidv4()}.mp3`;
+  const filename = `alert-${uuidv4()}.wav`;
   const filepath = path.join(AUDIO_DIR, filename);
   fs.writeFileSync(filepath, audioBuffer);
 
