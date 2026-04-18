@@ -63,13 +63,18 @@ async function runPollCycle() {
 
 async function fireVoiceAlert(text, type) {
   console.log(`[Alert][${type}] "${text}"`);
+
+  // Broadcast immediately — browser SpeechSynthesis on the dashboard speaks it
+  broadcastEvent('voice_alert', { type, text });
+  session.alertCooldownUntil = Date.now() + COOLDOWN_MS;
+
+  // Also try to inject audio via Recall bot (best-effort, won't block above)
   try {
     const audioUrl = await generateSpeech(text);
     await botSpeak(session.botId, audioUrl);
-    session.alertCooldownUntil = Date.now() + COOLDOWN_MS;
-    broadcastEvent('voice_alert', { type, text, audioUrl });
+    console.log('[Alert] Bot audio injected via Recall');
   } catch (err) {
-    console.error(`[Alert] Failed to fire ${type} alert:`, err.message);
+    console.log(`[Alert] Bot audio skipped (browser TTS active): ${err.message}`);
   }
 }
 
