@@ -54,7 +54,8 @@ export async function joinMeeting(meetingUrl, webhookUrl) {
  * audioUrl must be publicly reachable.
  */
 export async function botSpeak(botId, audioUrl) {
-  const res = await fetch(`${BASE}/bot/${botId}/speak`, {
+  console.log(`[Recall] botSpeak → bot=${botId} url=${audioUrl}`);
+  const res = await fetch(`${BASE}/bot/${botId}/speak/`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({ audio_url: audioUrl }),
@@ -62,8 +63,10 @@ export async function botSpeak(botId, audioUrl) {
 
   if (!res.ok) {
     const err = await res.text();
-    console.error(`Recall botSpeak failed: ${res.status} — ${err}`);
+    throw new Error(`Recall botSpeak failed: ${res.status} — ${err}`);
   }
+
+  console.log(`[Recall] botSpeak success — audio queued`);
 }
 
 /**

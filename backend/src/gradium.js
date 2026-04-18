@@ -35,7 +35,7 @@ export async function generateSpeech(text) {
     body: JSON.stringify({
       text,
       voice_id: VOICE_ID,
-      output_format: 'wav',
+      output_format: 'mp3',
       only_audio: true,
     }),
   });
@@ -46,11 +46,17 @@ export async function generateSpeech(text) {
   }
 
   const audioBuffer = Buffer.from(await res.arrayBuffer());
-  const filename = `alert-${uuidv4()}.wav`;
+  console.log(`[Gradium] Audio buffer size: ${audioBuffer.length} bytes`);
+
+  if (audioBuffer.length < 1000) {
+    throw new Error(`Gradium returned suspiciously small audio (${audioBuffer.length} bytes) — likely an error response`);
+  }
+
+  const filename = `alert-${uuidv4()}.mp3`;
   const filepath = path.join(AUDIO_DIR, filename);
   fs.writeFileSync(filepath, audioBuffer);
 
   const publicUrl = `${PUBLIC_BASE_URL}/audio/${filename}`;
-  console.log(`[Gradium] Audio saved → ${publicUrl}`);
+  console.log(`[Gradium] Audio saved → ${publicUrl} (${audioBuffer.length} bytes)`);
   return publicUrl;
 }
