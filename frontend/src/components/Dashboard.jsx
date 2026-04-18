@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import TranscriptFeed from './TranscriptFeed';
 import AlertFeed from './AlertFeed';
+import ContextFeed from './ContextFeed';
 
 function formatTime(seconds) {
   const m = Math.floor(Math.abs(seconds) / 60);
@@ -16,6 +17,7 @@ export default function Dashboard({
   agendaCheck,
   timer,
   alerts,
+  contextCards,
   onNextItem,
   onEnd,
 }) {
@@ -109,6 +111,8 @@ export default function Dashboard({
             <AlertFeed alerts={alerts} />
           </div>
         )}
+
+        <ContextFeed cards={contextCards} />
       </div>
     </div>
   );

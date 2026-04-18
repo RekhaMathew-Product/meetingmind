@@ -1,5 +1,5 @@
 import { session, lastNWords, currentAgendaItem, secondsOnCurrentItem } from './state.js';
-import { checkAgendaAdherence, generateSummary } from './tinyfish.js';
+import { checkAgendaAdherence, generateSummary } from './llm.js';
 import { generateSpeech } from './gradium.js';
 import { botSpeak } from './recallai.js';
 import { broadcastEvent } from './webhook.js';

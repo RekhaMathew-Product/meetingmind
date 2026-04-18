@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { session, appendTranscript } from './state.js';
+import { processTranscriptForContext } from './contextDetector.js';
 
 export const webhookRouter = Router();
 
@@ -43,6 +44,8 @@ webhookRouter.post('/recall', (req, res) => {
     if (text) {
       appendTranscript(speaker, text);
       broadcastEvent('transcript', { speaker, text, ts: Date.now() });
+      // TinyFish: detect URLs and topic mentions → fetch live context
+      processTranscriptForContext(speaker, text);
     }
   }
 

@@ -16,6 +16,7 @@ export default function App() {
   const [summary, setSummary] = useState(null);
   const [botStatus, setBotStatus] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [contextCards, setContextCards] = useState([]);
   const eventSourceRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +53,9 @@ export default function App() {
         case 'meeting_summary':
           setSummary(data);
           setPhase('ended');
+          break;
+        case 'context_card':
+          setContextCards(prev => [data, ...prev].slice(0, 20));
           break;
         case 'bot_status':
           setBotStatus(data.status);
@@ -99,6 +103,7 @@ export default function App() {
     setSummary(null);
     setTranscript([]);
     setAlerts([]);
+    setContextCards([]);
     setAgendaCheck(null);
     setTimer(null);
     setBotStatus(null);
@@ -128,6 +133,7 @@ export default function App() {
             agendaCheck={agendaCheck}
             timer={timer}
             alerts={alerts}
+            contextCards={contextCards}
             onNextItem={handleNextItem}
             onEnd={handleEnd}
           />

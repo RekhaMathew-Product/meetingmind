@@ -254,6 +254,48 @@ body {
 .alert-entry--overtime .alert-type-badge { color: var(--red); }
 .alert-text { color: var(--text-muted); }
 
+/* Context feed (TinyFish) */
+.context-card-panel { border-color: #2563eb44; }
+.context-feed { display: flex; flex-direction: column; gap: 0.75rem; max-height: 320px; overflow-y: auto; }
+
+.context-item {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  border-left: 3px solid #3b82f6;
+}
+.context-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.context-trigger-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #60a5fa;
+  background: rgba(59,130,246,0.15);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.context-query { font-weight: 600; font-size: 0.85rem; color: var(--text); }
+.context-mentioned-by { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+
+.context-result { margin-bottom: 0.4rem; }
+.context-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #60a5fa;
+  text-decoration: none;
+  margin-bottom: 0.2rem;
+}
+.context-title:hover { text-decoration: underline; }
+.context-snippet { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
 /* Summary */
 .summary-page { display: flex; justify-content: center; padding: 2rem 0; }
 .summary-card {

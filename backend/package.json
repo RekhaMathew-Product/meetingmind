@@ -1,7 +1,7 @@
 {
   "name": "meetingmind-backend",
   "version": "1.0.0",
-  "description": "MeetingMind AI backend — webhook receiver, polling loop, TinyFish + Gradium integration",
+  "description": "MeetingMind AI backend — webhook receiver, polling loop, Claude LLM + TinyFish Fetch + Gradium integration",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "@anthropic-ai/sdk": "^0.39.0",
     "node-fetch": "^3.3.2",
     "uuid": "^10.0.0"
   }
