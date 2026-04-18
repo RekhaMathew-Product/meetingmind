@@ -35,22 +35,24 @@ webhookRouter.get('/events', (req, res) => {
 webhookRouter.post('/recall', (req, res) => {
   const body = req.body;
 
-  // Recall.ai real_time_transcription payload shape
-  if (body?.data?.transcript) {
-    const words = body.data.transcript;
-    const speaker = body.data.speaker?.name || 'Participant';
+  const event = body?.event;
+  if (event) console.log(`[Webhook] event: ${event}`);
+
+  // New API: transcript.data event
+  if (event === 'transcript.data') {
+    const words = body?.data?.data?.words || [];
+    const speaker = body?.data?.data?.speaker || 'Participant';
     const text = words.map(w => w.text).join(' ').trim();
 
     if (text) {
       appendTranscript(speaker, text);
       broadcastEvent('transcript', { speaker, text, ts: Date.now() });
-      // TinyFish: detect URLs and topic mentions → fetch live context
       processTranscriptForContext(speaker, text);
     }
   }
 
-  // Bot joined / left events
-  if (body?.event === 'bot.status_change') {
+  // Bot status change events
+  if (event === 'bot.status_change') {
     const status = body?.data?.status?.code;
     console.log(`[Webhook] Bot status: ${status}`);
     broadcastEvent('bot_status', { status });
