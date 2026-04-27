@@ -5,6 +5,12 @@
 
 MeetingMind AI joins your Google Meet as a named participant. It monitors the conversation in real time, fires spoken voice alerts when the meeting goes off-agenda or over time, and delivers an end-of-meeting summary with an efficiency score.
 
+Team
+Rekha Mathew
+Oluwasen Oyagbile
+Anousheh Arif
+Theo Bailey
+
 ---
 
 ## Architecture
